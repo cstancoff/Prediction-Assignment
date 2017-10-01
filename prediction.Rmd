@@ -1,0 +1,148 @@
+---
+title: "Unilateral Dumbbell Biceps Curl Prediction Assignment"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,message = F, error = F, warning = F, cache=T,
+                      comment = NA, fig.align = 'center', dpi = 100, tidy = F)
+library(ggplot2)
+library(dplyr)
+library(caret)
+```
+
+## Introduction
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+Six young health participants were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions: 
+
+* A - exactly according to the specification
+* B - throwing the elbows to the front
+* C - lifting the dumbbell only halfway
+* D - lowering the dumbbell only halfway
+* E - throwing the hips to the front
+
+## Data Import and Exploratory Analysis
+Read the csv file containing the data into R.
+```{r cache=TRUE}
+# Read the data
+# The data for this project come from this source:
+# http://groupware.les.inf.puc-rio.br/har. If you use the document you create for
+# this class for any purpose please cite them as they have been very generous in
+# allowing their data to be used for this kind of assignment.
+
+fileUrl <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+download.file(fileUrl, destfile="../pml-training.csv", method="curl")
+data <- tbl_df(read.csv("../pml-training.csv"))
+
+dim(data)
+```
+
+Read the data for the 20 question quiz.
+
+```{r cache=TRUE}
+fileUrl <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+download.file(fileUrl, destfile="../pml-testing.csv", method="curl")
+quiz <- tbl_df(read.csv("../pml-testing.csv"))
+```
+
+## Data Selection
+Many of the columns have no data in them and some of them are irrelevant to predict how the bicep curl was performed, so I reduced the data to only columns that I think will be useful for prediction.  Because they give information on orientation I selected the roll, pitch, and yaw for all 4 sensors. 
+
+```{r}
+data_subset <- data[c("roll_belt","pitch_belt","yaw_belt",
+                       "roll_arm","pitch_arm","yaw_arm",
+                       "roll_dumbbell","pitch_dumbbell","yaw_dumbbell",
+                       "roll_forearm","pitch_forearm","yaw_forearm",
+                       "classe")]
+```
+
+After reducing the data the next step was to break the data into training and testing sets.
+
+```{r}
+# Parition the data into training and testing sets
+inTrain <- createDataPartition(y=data_subset$classe,p=0.60,list=FALSE)
+training <- data_subset[inTrain,]
+testing <- data_subset[-inTrain,]
+```
+
+## Predicting with Trees
+I first tried predicting with trees.
+
+```{r cache=TRUE}
+# Train the model
+fit_rpart <- train(classe~., data=training, method="rpart")
+fit_rpart
+
+# Perform the prediction
+pred <- predict(fit_rpart, testing)
+cm_rpart <- confusionMatrix(testing$classe,pred)
+cm_rpart
+```
+
+I plotted all of the predictors versus the classe.  The results are colored red for the ones that were correctly predicted and black for the ones that weren't.
+
+```{r fig.width=8, fig.height=6}
+par(mfrow =c(3,4))
+testing$predRight <- pred == testing$classe
+
+# Create a graph of all the predictors
+with(testing, plot(roll_belt,y=classe,col=factor(predRight)))
+with(testing, plot(roll_arm,y=classe,col=factor(predRight)))
+with(testing, plot(roll_dumbbell,y=classe,col=factor(predRight)))
+with(testing, plot(roll_forearm,y=classe,col=factor(predRight)))
+
+with(testing, plot(pitch_belt,y=classe,col=factor(predRight)))
+with(testing, plot(pitch_arm,y=classe,col=factor(predRight)))
+with(testing, plot(pitch_dumbbell,y=classe,col=factor(predRight)))
+with(testing, plot(pitch_forearm,y=classe,col=factor(predRight)))
+
+with(testing, plot(yaw_belt,y=classe,col=factor(predRight)))
+with(testing, plot(yaw_arm,y=classe,col=factor(predRight)))
+with(testing, plot(yaw_dumbbell,y=classe,col=factor(predRight)))
+with(testing, plot(yaw_forearm,y=classe,col=factor(predRight)))
+```
+
+Because the accuracy of this method was `r cm_rpart$overall['Accuracy'] * 100`% I decided to try another method.
+
+## Predicting with Random Forests
+The next method I tried was to predict using random forests.  I used 3 10-fold cross-validations to re-sample the data.
+
+```{r cache=TRUE}
+# Train the model
+fit_rf <- train(classe~., data=training,
+                method="rf",trControl=trainControl(method="cv"), number=3)
+fit_rf
+
+# Perform the prediction
+pred_rf <- predict(fit_rf, testing)
+cm_rf <- confusionMatrix(testing$classe,pred_rf)
+cm_rf
+```
+
+This model has an accuracy of `r cm_rf$overall['Accuracy'] * 100`%.  I also plotted all of the predictors versus the classe.  The results are colored red for the ones that were correctly predicted and black for the ones that weren't.
+
+```{r fig.width=8, fig.height=6}
+par(mfrow =c(3,4))
+testing$predRight <- pred_rf == testing$classe
+
+# Create a graph of one of the predictors
+with(testing, plot(roll_belt,y=classe,col=factor(predRight)))
+with(testing, plot(roll_arm,y=classe,col=factor(predRight)))
+with(testing, plot(roll_dumbbell,y=classe,col=factor(predRight)))
+with(testing, plot(roll_forearm,y=classe,col=factor(predRight)))
+
+with(testing, plot(pitch_belt,y=classe,col=factor(predRight)))
+with(testing, plot(pitch_arm,y=classe,col=factor(predRight)))
+with(testing, plot(pitch_dumbbell,y=classe,col=factor(predRight)))
+with(testing, plot(pitch_forearm,y=classe,col=factor(predRight)))
+
+with(testing, plot(yaw_belt,y=classe,col=factor(predRight)))
+with(testing, plot(yaw_arm,y=classe,col=factor(predRight)))
+with(testing, plot(yaw_dumbbell,y=classe,col=factor(predRight)))
+with(testing, plot(yaw_forearm,y=classe,col=factor(predRight)))
+```
+
+
+## Conclusion
+The random forest method created the best model.  It has high accuracy of `r (cm_rf$overall['Accuracy']) * 100`% and therefore a low out of sample error of `r (1-cm_rf$overall['Accuracy']) * 100`% 
