@@ -1,6 +1,8 @@
 ---
 title: "Unilateral Dumbbell Biceps Curl Prediction Assignment"
-output: html_document
+output:
+  md_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
