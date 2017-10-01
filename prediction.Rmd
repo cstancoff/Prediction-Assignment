@@ -120,29 +120,7 @@ cm_rf <- confusionMatrix(testing$classe,pred_rf)
 cm_rf
 ```
 
-This model has an accuracy of `r cm_rf$overall['Accuracy'] * 100`%.  I also plotted all of the predictors versus the classe.  The results are colored red for the ones that were correctly predicted and black for the ones that weren't.
-
-```{r fig.width=8, fig.height=6}
-par(mfrow =c(3,4))
-testing$predRight <- pred_rf == testing$classe
-
-# Create a graph of one of the predictors
-with(testing, plot(roll_belt,y=classe,col=factor(predRight)))
-with(testing, plot(roll_arm,y=classe,col=factor(predRight)))
-with(testing, plot(roll_dumbbell,y=classe,col=factor(predRight)))
-with(testing, plot(roll_forearm,y=classe,col=factor(predRight)))
-
-with(testing, plot(pitch_belt,y=classe,col=factor(predRight)))
-with(testing, plot(pitch_arm,y=classe,col=factor(predRight)))
-with(testing, plot(pitch_dumbbell,y=classe,col=factor(predRight)))
-with(testing, plot(pitch_forearm,y=classe,col=factor(predRight)))
-
-with(testing, plot(yaw_belt,y=classe,col=factor(predRight)))
-with(testing, plot(yaw_arm,y=classe,col=factor(predRight)))
-with(testing, plot(yaw_dumbbell,y=classe,col=factor(predRight)))
-with(testing, plot(yaw_forearm,y=classe,col=factor(predRight)))
-```
-
+This model has an accuracy of `r cm_rf$overall['Accuracy'] * 100`%.  
 
 ## Conclusion
 The random forest method created the best model.  It has high accuracy of `r (cm_rf$overall['Accuracy']) * 100`% and therefore a low out of sample error of `r (1-cm_rf$overall['Accuracy']) * 100`% 
